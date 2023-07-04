@@ -3,6 +3,31 @@ from django.contrib.auth.models import (
     AbstractBaseUser, BaseUserManager, AbstractUser
 )
 
+class UserManager(BaseUserManager):
+    def create_user(self,email,password,staff=False, admin=False,active=True):
+        if not email:
+            raise ValueError('이메일을 입력해주세요!')
+        if not password:
+            raise ValueError('비밀번호를 입력해주세요!')
+        
+        user = self.model(email=self.normalize_email(email))
+        user.set_password(password)
+        user.staff=staff
+        user.admin=admin
+        user.active=active
+        user.save(using=self._db)
+        
+        return user
+    
+    def create_superuser(self,email,password):
+        user=self.create_user(
+            email,
+            password,
+            staff=True,
+            admin=True
+        )
+        return user
+
 # Create your models here.
 class User(AbstractBaseUser):
     email = models.EmailField(max_length=255, unique=True)
@@ -13,6 +38,8 @@ class User(AbstractBaseUser):
     
     USERNAME_FIELD='email'
     REQUIRED_FIELD=[]
+    
+    object = UserManager()
     
     def __str__(self):
         return self.email
@@ -25,7 +52,9 @@ class User(AbstractBaseUser):
     def is_superuser(self):
         return self.admin
     
-    #가독성 좋게 하려고 사용한다는데 넣는게 맞는지 모르겠음
-    User.is_staff()
-    User.is_staff
+    def has_perm(self,perm,dbj=None):
+       return self.admin
+    
+    def has_module_perms(self,app_label):
+       return self.admin
     
